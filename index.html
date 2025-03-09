@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Battlesolver</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <style>
+        body {
+            background-color: bisque;
+        }
+
+        #gameBoard {
+            background-image: url("https://www.textures.com/system/gallery/photos/FX/Water/Plain/50937/WaterPlain0012_1_350.jpg");
+            background-repeat: repeat;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 50px;
+            border-radius: 10px;
+            box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.5);
+        }
+
+        table {
+            padding: 10px;
+            border-spacing: 10px;
+            border: 5px solid white;
+        }
+
+        td, tr {
+            border: 2px solid white;
+            color: white;
+            padding: 10px;
+            cursor: crosshair;
+            border-radius: 50%;
+            transition: background-color 100ms ease-in-out;
+        }
+
+        h1 {
+            text-align: center;
+            color: rgb(112, 61, 61);
+            font-size: 80px;
+        }
+    </style>
+    <main>
+        <h1>Battleship Boi</h1>
+        <div id="gameBoard"></div>
+    </main>
+    <script>
+        const table = document.createElement('table');
+
+        let tablesize = [10,10]
+        let gameArr = []
+        let visualArr = []
+
+        for (let i = 0; i < tablesize[0]; i++) {
+            let tempRow = document.createElement('tr');
+            tempArrRow = []
+            for (let j = 0; j < tablesize[1]; j++) { 
+                let tempCol = document.createElement('td')
+                tempCol.addEventListener("mousedown", (event) => {clickSquare(tempCol, i, j)})
+                tempRow.appendChild(tempCol)
+                tempArrRow.push(0)
+                visualArr.push([tempRow, tempCol])
+            }
+            table.appendChild(tempRow)
+            gameArr.push(tempArrRow)
+        }
+
+        document.getElementById("gameBoard").appendChild(table);
+
+        function clickSquare(obj, posX, posY) {
+            if(!obj.style.backgroundColor) {
+                obj.style.backgroundColor = "white"
+                gameArr[posX][posY] = 1
+            } else if (obj.style.backgroundColor == "white") {
+                obj.style.backgroundColor = "darkred"
+                gameArr[posX][posY] = 2
+            } else {
+                obj.style.backgroundColor = ""
+                gameArr[posX][posY] = 0
+            }
+            console.debug(gameArr)
+
+            for(let i = 0; i < tablesize[0]; i++) {
+                for(let j = 0; i < tablesize[0]; i++) {
+                    if(gameArr[i][j] != 1) {
+                        let surrounding = [[i-1, j], [i, j+1], [i+1, j], [i, j-1]]
+                        for(let k = 0; k < surrounding.length; k++) {
+                            let active = getItem(surrounding[k], gameArr)
+                            if(typeof active != "undefined"){
+                                if(active < 1) {
+                                    active = active + 0.1
+                                    getItem(surrounding[k], visualArr).style.backgroundColor = `rgb(0, 255, 0, ${active})`
+                                }
+                            }
+                        }   
+                    }
+                }
+            }
+        }
+
+        function getItem(arrIn, fromWhere) {
+            if(typeof fromWhere[arrIn[0]] != "undefined") {
+                if (typeof fromWhere[arrIn[0],arrIn[1]] != "undefined") {
+                    return fromWhere[arrIn[0]][arrIn[1]]
+                }
+            }
+        }
+    </script>
+</body>
+</html>

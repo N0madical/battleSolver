@@ -19,7 +19,7 @@
             background-repeat: repeat;
             position: relative;
             margin-left: 50%;
-            margin-top: 10px;
+            margin-top: 15px;
             height: 60vh;
             width: 60vh;
             transform: translateX(-50%);
@@ -29,7 +29,8 @@
         }
 
         #textContainer {
-            transition: opacity 1s ease-in-out, height 1s ease-in-out;
+            transition: all 1s ease-in-out;
+            max-height: 190px;
         }
 
         .textBox {
@@ -71,7 +72,23 @@
         }
 
         p {
+            margin: 5px;
             text-align: center;
+        }
+         
+        select {
+            height: 2em;
+            margin: 2.5px;
+        }
+
+        #hiddenSizes {
+            display: none;
+        }
+
+        #restart {
+            transition: max-height 1s ease-in-out, opacity 1s ease-in-out;
+            max-height: 0px;
+            opacity: 0;
         }
     </style>
 
@@ -80,16 +97,45 @@
         <div id="textContainer">
             <div class="textBox flex">
                 <p>Board Size:</p>
+                <select style="margin-right: 0px;" class="sizeSel" onchange="updateMap()"></select>
+                <p>x</p>
+                <select style="margin-left: 0px;" class="sizeSel" onchange="updateMap()"></select>
             </div>
-            <div class="textBox">
-                <p>Ships (By Length):</p>
+            <div class="textBox" style="margin-top: 15px;">
+                <p>Number of Ships (By Length in Spaces):</p>
                 <div class="flex textBox">
                     <p>1sp:</p>
-                    <p>2sp:</p>
-                    <p>3sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
+                    <p>  |  </p><p>2sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="3" selected>3</option></select>
+                    <p>  |  </p><p>3sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="2" selected>2</option></select>
+                </div>
+                <div class="flex textBox">
+                    <p>4sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="1" selected>1</option></select>
+                    <p>  |  </p><p>5sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="1" selected>1</option></select>
+                    <p>  |  </p><p>6sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
+                </div>
+                <a href="#" onclick="showMore()"><p>More</p></a>
+                <div class="flex textBox" id="hiddenSizes">
+                    <p>7sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
+                    <p>  |  </p><p>8sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
+                    <p>  |  </p><p>9sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
+                    <p>  |  </p><p>10sp:</p>
+                    <select class="numSel" onchange="updateMap()"><option name="0" selected>0</option></select>
                 </div>
             </div>
         </div>
+        <div class="textBox" id="restart">
+            <button onclick="restart()">Restart</button>
+        </div>
+        
         
         <div id="gameBoard"></div>
         <div id="guideText">
@@ -100,45 +146,75 @@
     </main>
 
     <script>
-        const table = document.createElement('table');
-
         let tablesize = [10,10]
         let dataArr = []
         let visualArr = []
         let transform = [[-1,0],[0,-1],[1,0],[0,1]]
-        let maxShipLen = 5
-        let boatCounts = [3,2,1,1,1]
+        let boatCounts = [3,2,1,1,1,0,0,0,0,0]
 
-        for (let i = 0; i < tablesize[0]; i++) {
-            //Loop array definitions
-            let tempRow = document.createElement('tr');
-            let tempDataRow = []
-            let tempVisualRow = []
-
-            for (let j = 0; j < tablesize[1]; j++) { 
-                //Create table element
-                let tempCol = document.createElement('td')
-                tempCol.addEventListener("mousedown", (event) => {clickSquare(tempCol, i, j)})
-                tempRow.appendChild(tempCol)
-                tempVisualRow.push(tempCol)
-
-                //Add initial square value
-                tempDataRow.push(0)
+        sizeDowns = document.getElementsByClassName("sizeSel")
+        for(let j = 0; j < sizeDowns.length; j++) {
+            for(let i = 1; i < 27; i++) {
+                let tempItem = document.createElement("option")
+                tempItem.value = i
+                tempItem.textContent = i
+                if(i == 10) {tempItem.selected = "selected"}
+                sizeDowns[j].appendChild(tempItem)
             }
-
-            //Add table items to overall array
-            table.appendChild(tempRow)
-            visualArr.push(tempVisualRow)
-
-            dataArr.push(tempDataRow)
         }
 
-        //Add the board to the screen
-        document.getElementById("gameBoard").appendChild(table);
+        boatDowns = document.getElementsByClassName("numSel")
+        for(let j = 0; j < boatDowns.length; j++) {
+            for(let i = 0; i < 10; i++) {
+                let tempItem = document.createElement("option")
+                tempItem.value = i
+                tempItem.textContent = i
+                if (Number(boatDowns[j].children[0].textContent) != i) {
+                    boatDowns[j].appendChild(tempItem)
+                }
+            }
+        }
+        
+        function generateBoard() {
+            let table = document.createElement('table');
+            document.getElementById("gameBoard").innerHTML = ""
+            dataArr = []
+            visualArr = []
+            for (let i = 0; i < tablesize[0]; i++) {
+                console.debug(i)
+                //Loop array definitions
+                let tempRow = document.createElement('tr');
+                let tempDataRow = []
+                let tempVisualRow = []
+
+                for (let j = 0; j < tablesize[1]; j++) { 
+                    //Create table element
+                    let tempCol = document.createElement('td')
+                    tempCol.addEventListener("mousedown", (event) => {clickSquare(tempCol, i, j)})
+                    tempRow.appendChild(tempCol)
+                    tempVisualRow.push(tempCol)
+
+                    //Add initial square value
+                    tempDataRow.push(0)
+                }
+
+                //Add table items to overall array
+                table.appendChild(tempRow)
+                visualArr.push(tempVisualRow)
+
+                dataArr.push(tempDataRow)
+            }
+
+            //Add the board to the screen
+            document.getElementById("gameBoard").appendChild(table);
+        }
+        
 
         function clickSquare(obj, posX, posY) { //Detect player click and affect the board
             document.getElementById("textContainer").style.opacity = 0
-            document.getElementById("textContainer").style.height = 0
+            document.getElementById("textContainer").style.maxHeight = "5px"
+            document.getElementById("restart").style.opacity = 1
+            document.getElementById("restart").style.maxHeight = "20px"
             let currentSquare = dataArr[posX][posY]
             if(currentSquare >= 0) {
                 dataArr[posX][posY] = -1
@@ -161,20 +237,20 @@
                     if(dataArr[i][j] >= 0) {
                         dataArr[i][j] = Number(boatCounts[0])
                     
-                        // console.debug(dataArr)
+                        console.debug(dataArr)
 
                         //probability calculation
                         for(let k = 0; k < transform.length; k++) {
                             let blocked = false
-                            for(let h = 1; h <= maxShipLen; h++) {
+                            for(let h = 1; h < largestNonZero(boatCounts); h++) {
                                 if(!blocked) {
                                     if (typeof dataArr[i + (transform[k][0]*h)] !== "undefined" && typeof dataArr[i + (transform[k][0]*h)][j + (transform[k][1]*h)] !== "undefined") {
                                         if(dataArr[i + (transform[k][0]*h)][j + (transform[k][1]*h)] < 0) {
                                             blocked = true
                                         } else {
-                                            // console.debug("Before:", dataArr[i][j], ", adding:", Number(boatCounts[h-1]), ", h =", h)
-                                            dataArr[i][j] += Number(boatCounts[h-1])
-                                            // console.debug("After:", dataArr[i][j])
+                                            console.debug("Before:", dataArr[i][j], ", adding:", Number(boatCounts[h]), ", h =", h)
+                                            dataArr[i][j] += Number(boatCounts[h])
+                                            console.debug("After:", dataArr[i][j])
                                         }
                                     }
                                 }
@@ -193,8 +269,13 @@
                 for (let j = 0; j < tablesize[1]; j++) {
                     // Scaling
                     if(dataArr[i][j] >= 0) {
-                        linearScaled = (dataArr[i][j] - min)/(max - min)
-                        dataArr[i][j] = Number(linearScaled.toPrecision(2))
+                        if(max != min) {
+                            linearScaled = (dataArr[i][j] - min)/(max - min)
+                            dataArr[i][j] = Number(linearScaled.toPrecision(2))
+                        } else {
+                            dataArr[i][j] = 1
+                        }
+                        
                     }
                     
                     let currentSquare = dataArr[i][j]
@@ -251,6 +332,48 @@
             return "sus"
         }
 
+        function largestNonZero(arrIn) {
+            let tempIndex = arrIn.length
+            for(let i = (arrIn.length-1); i > 0; i--) {
+                if(arrIn[i] != 0) {
+                    return i + 1
+                }
+            }
+            return 1
+        }
+
+        function showMore() {
+            if(document.getElementById("hiddenSizes").style.display == "flex") {
+                document.getElementById("hiddenSizes").style.display = "none"
+            } else {
+                document.getElementById("hiddenSizes").style.display = "flex"
+            }
+        }
+
+        function restart() {
+            document.getElementById("textContainer").style.opacity = ""
+            document.getElementById("textContainer").style.maxHeight = ""
+            document.getElementById("restart").style.opacity = ""
+            document.getElementById("restart").style.maxHeight = ""
+
+            updateMap()
+        }
+
+        function updateMap() {
+            let sizeSel = document.getElementsByClassName("sizeSel")
+            tablesize = [Number(sizeSel[0].value),Number(sizeSel[1].value)]
+
+            let boatSel = document.getElementsByClassName("numSel")
+            for(let i = 0; i < boatCounts.length; i++) {
+                boatCounts[i] = Number(boatSel[i].value)
+            }
+
+            generateBoard()
+            calculateHeatmap()
+            updateBoard()
+        }
+
+        generateBoard()
         calculateHeatmap()
         updateBoard()
     </script>

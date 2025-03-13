@@ -17,25 +17,47 @@
         #gameBoard {
             background-image: url("https://www.textures.com/system/gallery/photos/FX/Water/Plain/50937/WaterPlain0012_1_350.jpg");
             background-repeat: repeat;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            padding: 50px;
+            position: relative;
+            margin-left: 50%;
+            margin-top: 10px;
+            height: 60vh;
+            width: 60vh;
+            transform: translateX(-50%);
+            /* padding: 50px; */
             border-radius: 10px;
             box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.5);
         }
 
+        #textContainer {
+            transition: opacity 1s ease-in-out, height 1s ease-in-out;
+        }
+
+        .textBox {
+            margin-left: 50%;
+            width: max-content;
+            transform: translateX(-50%);
+        }
+
+        .flex {
+            display: flex;
+        }
+
         table {
-            padding: 10px;
-            border-spacing: 10px;
+            width: 85%;
+            height: 85%;
+            position: relative;
+            top: 7.5%;
+            left: 7.5%;
+            /* padding: 10px; */
+            border-spacing: 2vh;
             border: 5px solid white;
+            transform: rotate(-90deg);
         }
 
         td, tr {
             border: 2px solid white;
             color: white;
-            padding: 10px;
+            padding: 1vh;
             cursor: crosshair;
             border-radius: 50%;
             transition: background-color 100ms ease-in-out;
@@ -44,74 +66,193 @@
         h1 {
             text-align: center;
             color: rgb(112, 61, 61);
-            font-size: 80px;
+            font-size: 10vh;
+            margin-bottom: 10px;
+        }
+
+        p {
+            text-align: center;
         }
     </style>
+
     <main>
         <h1>Battleship Boi</h1>
+        <div id="textContainer">
+            <div class="textBox flex">
+                <p>Board Size:</p>
+            </div>
+            <div class="textBox">
+                <p>Ships (By Length):</p>
+                <div class="flex textBox">
+                    <p>1sp:</p>
+                    <p>2sp:</p>
+                    <p>3sp:</p>
+                </div>
+            </div>
+        </div>
+        
         <div id="gameBoard"></div>
+        <div id="guideText">
+            <p>Click a circle to mark a shot!</p>
+            <p>Click it twice to mark a hit</p>
+        </div>
+        
     </main>
+
     <script>
         const table = document.createElement('table');
 
         let tablesize = [10,10]
-        let gameArr = []
+        let dataArr = []
         let visualArr = []
+        let transform = [[-1,0],[0,-1],[1,0],[0,1]]
+        let maxShipLen = 5
+        let boatCounts = [3,2,1,1,1]
 
         for (let i = 0; i < tablesize[0]; i++) {
+            //Loop array definitions
             let tempRow = document.createElement('tr');
-            tempArrRow = []
+            let tempDataRow = []
+            let tempVisualRow = []
+
             for (let j = 0; j < tablesize[1]; j++) { 
+                //Create table element
                 let tempCol = document.createElement('td')
                 tempCol.addEventListener("mousedown", (event) => {clickSquare(tempCol, i, j)})
                 tempRow.appendChild(tempCol)
-                tempArrRow.push(0)
-                visualArr.push([tempRow, tempCol])
+                tempVisualRow.push(tempCol)
+
+                //Add initial square value
+                tempDataRow.push(0)
             }
+
+            //Add table items to overall array
             table.appendChild(tempRow)
-            gameArr.push(tempArrRow)
+            visualArr.push(tempVisualRow)
+
+            dataArr.push(tempDataRow)
         }
 
+        //Add the board to the screen
         document.getElementById("gameBoard").appendChild(table);
 
-        function clickSquare(obj, posX, posY) {
-            if(!obj.style.backgroundColor) {
-                obj.style.backgroundColor = "white"
-                gameArr[posX][posY] = 1
-            } else if (obj.style.backgroundColor == "white") {
-                obj.style.backgroundColor = "darkred"
-                gameArr[posX][posY] = 2
+        function clickSquare(obj, posX, posY) { //Detect player click and affect the board
+            document.getElementById("textContainer").style.opacity = 0
+            document.getElementById("textContainer").style.height = 0
+            let currentSquare = dataArr[posX][posY]
+            if(currentSquare >= 0) {
+                dataArr[posX][posY] = -1
+            } else if (currentSquare == -1) {
+                dataArr[posX][posY] = -2
             } else {
-                obj.style.backgroundColor = ""
-                gameArr[posX][posY] = 0
+                dataArr[posX][posY] = 0
             }
-            console.debug(gameArr)
 
-            for(let i = 0; i < tablesize[0]; i++) {
-                for(let j = 0; i < tablesize[0]; i++) {
-                    if(gameArr[i][j] != 1) {
-                        let surrounding = [[i-1, j], [i, j+1], [i+1, j], [i, j-1]]
-                        for(let k = 0; k < surrounding.length; k++) {
-                            let active = getItem(surrounding[k], gameArr)
-                            if(typeof active != "undefined"){
-                                if(active < 1) {
-                                    active = active + 0.1
-                                    getItem(surrounding[k], visualArr).style.backgroundColor = `rgb(0, 255, 0, ${active})`
+            calculateHeatmap()
+            updateBoard()
+        }
+
+        console.debug(dataArr)
+
+        function calculateHeatmap() {
+            console.debug(dataArr)
+            for (let i = 0; i < tablesize[0]; i++) {
+                for (let j = 0; j < tablesize[1]; j++) { 
+                    if(dataArr[i][j] >= 0) {
+                        dataArr[i][j] = Number(boatCounts[0])
+                    
+                        // console.debug(dataArr)
+
+                        //probability calculation
+                        for(let k = 0; k < transform.length; k++) {
+                            let blocked = false
+                            for(let h = 1; h <= maxShipLen; h++) {
+                                if(!blocked) {
+                                    if (typeof dataArr[i + (transform[k][0]*h)] !== "undefined" && typeof dataArr[i + (transform[k][0]*h)][j + (transform[k][1]*h)] !== "undefined") {
+                                        if(dataArr[i + (transform[k][0]*h)][j + (transform[k][1]*h)] < 0) {
+                                            blocked = true
+                                        } else {
+                                            // console.debug("Before:", dataArr[i][j], ", adding:", Number(boatCounts[h-1]), ", h =", h)
+                                            dataArr[i][j] += Number(boatCounts[h-1])
+                                            // console.debug("After:", dataArr[i][j])
+                                        }
+                                    }
                                 }
                             }
-                        }   
+                        }
                     }
                 }
             }
         }
 
-        function getItem(arrIn, fromWhere) {
-            if(typeof fromWhere[arrIn[0]] != "undefined") {
-                if (typeof fromWhere[arrIn[0],arrIn[1]] != "undefined") {
-                    return fromWhere[arrIn[0]][arrIn[1]]
+        function updateBoard() { //Update the board visually
+            let min = MinMax2d(dataArr,false)
+            let max = MinMax2d(dataArr, true)
+
+            for (let i = 0; i < tablesize[0]; i++) {
+                for (let j = 0; j < tablesize[1]; j++) {
+                    // Scaling
+                    if(dataArr[i][j] >= 0) {
+                        linearScaled = (dataArr[i][j] - min)/(max - min)
+                        dataArr[i][j] = Number(linearScaled.toPrecision(2))
+                    }
+                    
+                    let currentSquare = dataArr[i][j]
+
+                    if(currentSquare >= 0) {
+                        visualArr[i][j].style.backgroundColor = `rgba(255, 165, 0, ${currentSquare})`
+                    } else if (currentSquare == -1) {
+                        visualArr[i][j].style.backgroundColor = "white"
+                    } else if (currentSquare == -2) {
+                        visualArr[i][j].style.backgroundColor = "darkRed"
+                    } else {
+                        visualArr[i][j].style.backgroundColor = ""
+                    }
                 }
             }
+
+            console.debug(dataArr)
+            let targetSpot = index2d(dataArr, MinMax2d(dataArr, true))
+            visualArr[targetSpot[0]][targetSpot[1]].style.backgroundColor = "black"
+
+            printData()
         }
+
+        function printData() {
+            let printOut = ""
+            for (let i = 0; i < tablesize[0]; i++) {
+                for (let j = 0; j < tablesize[1]; j++) { 
+                    printOut = (printOut + String(dataArr[i][j]) + ", ")
+                }
+                printOut = printOut + "\n\n"
+            }
+            console.info(printOut)
+        }
+
+        function MinMax2d(array, minmax) {
+            let flatValues = []
+            for(let i = 0; i < array.length; i++) {
+                if(minmax) {
+                    flatValues.push(Math.max(...array[i]))
+                } else {
+                    flatValues.push(Math.min(...array[i]))
+                }
+            }
+            if(minmax) {
+                return Math.max(...flatValues)} else {return Math.min(...flatValues)}
+        }
+
+        function index2d(array,valIn) {
+            for(let i = 0; i < array.length; i++) {
+                if(array[i].indexOf(valIn) != -1) {
+                    return [i, array[i].indexOf(valIn)]
+                }
+            }
+            return "sus"
+        }
+
+        calculateHeatmap()
+        updateBoard()
     </script>
 </body>
 </html>
